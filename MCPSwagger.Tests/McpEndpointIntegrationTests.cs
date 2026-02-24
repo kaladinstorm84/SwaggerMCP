@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -50,7 +51,50 @@ public sealed class McpEndpointIntegrationTests : IClassFixture<WebApplicationFa
         toolNames.Should().Contain("list_orders");
         toolNames.Should().Contain("create_order");
         toolNames.Should().Contain("update_order_status");
+        toolNames.Should().Contain("get_secure_order");
         toolNames.Should().NotContain("delete_order");
+    }
+
+    [Fact]
+    public async Task ToolsList_ReturnsExpectedInputSchemaShapes()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 20,
+            method = "tools/list"
+        });
+
+        var toolsByName = response["result"]!.AsObject()["tools"]!.AsArray()
+            .Select(tool => tool!.AsObject())
+            .ToDictionary(
+                tool => tool["name"]!.GetValue<string>(),
+                tool => tool["inputSchema"]!.AsObject(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var createOrderSchema = toolsByName["create_order"];
+        createOrderSchema["type"]!.GetValue<string>().Should().Be("object");
+        var createOrderProperties = createOrderSchema["properties"]!.AsObject();
+        createOrderProperties["customerName"]!.AsObject()["type"]!.GetValue<string>().Should().Be("string");
+        createOrderProperties["product"]!.AsObject()["type"]!.GetValue<string>().Should().Be("string");
+        createOrderProperties["quantity"]!.AsObject()["type"]!.GetValue<string>().Should().Be("integer");
+        var createOrderRequired = createOrderSchema["required"]!.AsArray()
+            .Select(node => node!.GetValue<string>())
+            .ToList();
+        createOrderRequired.Should().Contain("customerName");
+        createOrderRequired.Should().Contain("product");
+
+        var updateStatusSchema = toolsByName["update_order_status"];
+        var updateStatusProperties = updateStatusSchema["properties"]!.AsObject();
+        updateStatusProperties["id"]!.AsObject()["type"]!.GetValue<string>().Should().Be("integer");
+        var statusSchema = updateStatusProperties["status"]!.AsObject();
+        statusSchema["type"]!.GetValue<string>().Should().Be("string");
+        statusSchema.Should().HaveProperty("pattern");
+        var updateStatusRequired = updateStatusSchema["required"]!.AsArray()
+            .Select(node => node!.GetValue<string>())
+            .ToList();
+        updateStatusRequired.Should().Contain("id");
+        updateStatusRequired.Should().Contain("status");
     }
 
     [Fact]
@@ -113,6 +157,98 @@ public sealed class McpEndpointIntegrationTests : IClassFixture<WebApplicationFa
     }
 
     [Fact]
+    public async Task ToolCall_CreateOrder_MissingRequiredFields_ReturnsMcpError()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 21,
+            method = "tools/call",
+            @params = new
+            {
+                name = "create_order",
+                arguments = new { quantity = 2 }
+            }
+        });
+
+        var result = response["result"]!.AsObject();
+        result["isError"]!.GetValue<bool>().Should().BeTrue();
+        var errorText = ExtractTextContent(response);
+        errorText.Should().Contain("HTTP 400");
+        errorText.Should().ContainEquivalentOf("customerName");
+    }
+
+    [Fact]
+    public async Task ToolCall_GetOrder_WithWrongArgumentType_ReturnsMcpError()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 22,
+            method = "tools/call",
+            @params = new { name = "get_order", arguments = new { id = "not-an-int" } }
+        });
+
+        var result = response["result"]!.AsObject();
+        result["isError"]!.GetValue<bool>().Should().BeTrue();
+        ExtractTextContent(response).Should().Contain("HTTP 400");
+    }
+
+    [Fact]
+    public async Task ToolCall_GetOrder_WithEmptyArguments_ReturnsMcpError()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 23,
+            method = "tools/call",
+            @params = new { name = "get_order", arguments = new { } }
+        });
+
+        var result = response["result"]!.AsObject();
+        result["isError"]!.GetValue<bool>().Should().BeTrue();
+        ExtractTextContent(response).Should().Contain("Tool 'get_order' failed with HTTP");
+    }
+
+    [Fact]
+    public async Task ToolCall_UpdateOrderStatus_InvalidStatus_ReturnsMcpError()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 24,
+            method = "tools/call",
+            @params = new
+            {
+                name = "update_order_status",
+                arguments = new { id = 1, status = "invalid-status-value" }
+            }
+        });
+
+        var result = response["result"]!.AsObject();
+        result["isError"]!.GetValue<bool>().Should().BeTrue();
+        var errorText = ExtractTextContent(response);
+        errorText.Should().Contain("HTTP 400");
+        errorText.Should().ContainEquivalentOf("status");
+    }
+
+    [Fact]
+    public async Task ToolCall_ProtectedEndpoint_Unauthorized_ReturnsMcpErrorResult()
+    {
+        var response = await PostMcpAsync(new
+        {
+            jsonrpc = "2.0",
+            id = 25,
+            method = "tools/call",
+            @params = new { name = "get_secure_order", arguments = new { id = 1 } }
+        });
+
+        var result = response["result"]!.AsObject();
+        result["isError"]!.GetValue<bool>().Should().BeTrue();
+        ExtractTextContent(response).Should().Contain("HTTP 401");
+    }
+
+    [Fact]
     public async Task ToolCall_UnknownTool_ReturnsError()
     {
         var response = await PostMcpAsync(new
@@ -153,16 +289,33 @@ public sealed class McpEndpointIntegrationTests : IClassFixture<WebApplicationFa
         response["error"]!.AsObject()["code"]!.GetValue<int>().Should().Be(-32600);
     }
 
-    private async Task<System.Text.Json.Nodes.JsonObject> PostMcpAsync(object body)
+    [Fact]
+    public async Task MalformedJsonBody_ReturnsParseError()
     {
-        var json = JsonSerializer.Serialize(body);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var httpResponse = await _client.PostAsync("/mcp", content);
-        var responseJson = await httpResponse.Content.ReadAsStringAsync();
-        return System.Text.Json.Nodes.JsonNode.Parse(responseJson)!.AsObject();
+        const string malformedRequest = """{"jsonrpc":"2.0","id":9,"method":"tools/list","params":{"x":""";
+        var response = await PostRawMcpAsync(malformedRequest);
+
+        response.Should().HaveProperty("error");
+        var error = response["error"]!.AsObject();
+        error["code"]!.GetValue<int>().Should().Be(-32700);
+        error["message"]!.GetValue<string>().Should().Be("Parse error");
     }
 
-    private static string ExtractTextContent(System.Text.Json.Nodes.JsonObject response)
+    private async Task<JsonObject> PostMcpAsync(object body)
+    {
+        var json = JsonSerializer.Serialize(body);
+        return await PostRawMcpAsync(json);
+    }
+
+    private async Task<JsonObject> PostRawMcpAsync(string rawBody)
+    {
+        var content = new StringContent(rawBody, Encoding.UTF8, "application/json");
+        var httpResponse = await _client.PostAsync("/mcp", content);
+        var responseJson = await httpResponse.Content.ReadAsStringAsync();
+        return JsonNode.Parse(responseJson)!.AsObject();
+    }
+
+    private static string ExtractTextContent(JsonObject response)
     {
         return response["result"]!.AsObject()["content"]!.AsArray()[0]!
             .AsObject()["text"]!.GetValue<string>();

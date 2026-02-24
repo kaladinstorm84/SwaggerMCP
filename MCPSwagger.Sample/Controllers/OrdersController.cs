@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SwaggerMcp.Attributes;
 
@@ -17,6 +18,15 @@ public class OrdersController : ControllerBase
     [HttpGet("{id:int}")]
     [McpTool("get_order", Description = "Retrieves a single order by its numeric ID.")]
     public ActionResult<Order> GetOrder(int id)
+    {
+        var order = _store.FirstOrDefault(o => o.Id == id);
+        return order is null ? NotFound($"Order {id} not found") : Ok(order);
+    }
+
+    [HttpGet("secure/{id:int}")]
+    [Authorize]
+    [McpTool("get_secure_order", Description = "Retrieves a single order by its numeric ID. Requires authentication.")]
+    public ActionResult<Order> GetSecureOrder(int id)
     {
         var order = _store.FirstOrDefault(o => o.Id == id);
         return order is null ? NotFound($"Order {id} not found") : Ok(order);
@@ -90,5 +100,6 @@ public class CreateOrderRequest
 public class UpdateStatusRequest
 {
     [Required]
+    [RegularExpression("^(pending|shipped|cancelled)$", ErrorMessage = "Status must be one of: pending, shipped, cancelled.")]
     public string Status { get; set; } = default!;
 }

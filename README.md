@@ -246,6 +246,17 @@ mcpAPI/
 - **Tests:** `dotnet build MCPSwagger.Tests\MCPSwagger.Tests.csproj` then `dotnet test MCPSwagger.Tests\MCPSwagger.Tests.csproj`
 - **TestService (consumer):** `dotnet build TestService\TestService.csproj`
 
+### Test coverage highlights
+
+The integration and schema tests now explicitly verify:
+
+- JSON-RPC validation and error handling (invalid JSON-RPC version, malformed JSON payloads)
+- Model binding / model-state failures surfaced as MCP tool errors
+- Wrong argument types and empty argument payload behavior
+- Unauthorized calls to `[Authorize]`-protected MCP tools returning MCP errors instead of raw HTTP leakage
+- `tools/list` schema shape correctness (property types and required arrays)
+- Schema edge cases for nested objects, arrays/lists, enum properties, route+body merged inputs, and empty body types
+
 ## NuGet package
 
 To produce a `.nupkg`:
