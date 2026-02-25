@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using System.Text.Json;
 using NJsonSchema;
 using NJsonSchema.Generation;
@@ -128,6 +130,10 @@ public sealed class McpSchemaBuilder
                 if (propSchema.MinLength.HasValue) propObj["minLength"] = propSchema.MinLength.Value;
                 if (propSchema.MaxLength.HasValue) propObj["maxLength"] = propSchema.MaxLength.Value;
                 if (!string.IsNullOrEmpty(propSchema.Pattern)) propObj["pattern"] = propSchema.Pattern;
+                // NJsonSchema does not populate Pattern from [RegularExpression]; add it from reflection
+                var patternFromAttr = GetRegularExpressionPattern(bodyType, propName);
+                if (patternFromAttr is not null)
+                    propObj["pattern"] = patternFromAttr;
 
                 result[camelName] = propObj;
 
@@ -175,4 +181,16 @@ public sealed class McpSchemaBuilder
         JsonObjectType.Object => "object",
         _ => "string"
     };
+
+    /// <summary>Gets the regex pattern from [RegularExpression] on a body type property so we can emit it in JSON Schema (NJsonSchema does not do this by default).</summary>
+    private static string? GetRegularExpressionPattern(Type bodyType, string propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName)) return null;
+        var prop = bodyType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+            ?? (propertyName.Length > 1
+                ? bodyType.GetProperty(char.ToUpperInvariant(propertyName[0]) + propertyName[1..], BindingFlags.Public | BindingFlags.Instance)
+                : bodyType.GetProperty(propertyName.ToUpperInvariant(), BindingFlags.Public | BindingFlags.Instance));
+        var attr = prop?.GetCustomAttribute<RegularExpressionAttribute>();
+        return attr?.Pattern;
+    }
 }
