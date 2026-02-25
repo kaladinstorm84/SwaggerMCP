@@ -45,3 +45,15 @@
   - **MCPSwagger.Tests:** Unit and integration tests; references MCPSwagger and MCPSwagger.Sample (WebApplicationFactory&lt;Program&gt;).
 - **Pack:** `dotnet pack MCPSwagger\MCPSwagger.csproj -c Release -o .\nupkgs` produces **SwaggerMcp.1.0.0.nupkg**.
 - **TestService** still references MCPSwagger via ProjectReference (unchanged).
+
+### Phase 1 + Phase 2 (2026-02-24)
+
+**Phase 1:** Auth token forwarding via `SwaggerMcpOptions.ForwardHeaders` and `sourceContext` through factory/dispatcher/handler. XML doc descriptions via `XmlDocHelper.GetMethodSummary` when `[McpTool].Description` is null.
+
+**Phase 2:** Minimal API support: `McpToolDescriptor.Endpoint`, `McpToolEndpointMetadata`, `WithMcpTool` extension; discovery from `EndpointDataSource.Endpoints`; dispatch branch for minimal endpoints (`DispatchMinimalEndpointAsync`). Discovery uses `EndpointDataSource` (not IEndpointDataSource).
+
+**Sample:** MCPSwagger.Sample Program.cs now includes a minimal API example: `GET /api/health` with `.WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" })`.
+
+**create_order 500 fix:** Controller actions now get their matching RouteEndpoint from EndpointDataSource (by ControllerActionDescriptor.Id) and the dispatcher sets context.SetEndpoint before invoking so CreatedAtAction/LinkGenerator no longer hit IRouter/ActionContext 500.
+
+**CreatedAtAction robustness:** FindEndpointForAction now falls back to matching by ControllerName+ActionName when Id does not match. Synthetic request sets PathBase = Empty and Path with trimmed RelativeUrl. Log a warning when no endpoint is found for a controller action so link generation failures can be diagnosed. **"No route matches the supplied values" fix:** Synthetic request route values now include ambient `controller` and `action` from the ActionDescriptor so LinkGenerator/CreatedAtAction can resolve the target action (e.g. GetOrder) when generating the Location URL.

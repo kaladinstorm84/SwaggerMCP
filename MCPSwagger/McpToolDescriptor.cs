@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Routing;
 using SwaggerMcp.Attributes;
 
 namespace SwaggerMcp.Discovery;
@@ -19,11 +20,14 @@ public sealed class McpToolDescriptor
     /// <summary>Optional tags from McpToolAttribute.</summary>
     public string[]? Tags { get; init; }
 
-    /// <summary>The full ApiDescription for this action (route, HTTP method, params).</summary>
-    public ApiDescription ApiDescription { get; init; } = default!;
+    /// <summary>The full ApiDescription for this action (route, HTTP method, params). Null for minimal API endpoints.</summary>
+    public ApiDescription? ApiDescription { get; init; }
 
-    /// <summary>The action descriptor — used to build the invoker.</summary>
-    public ControllerActionDescriptor ActionDescriptor { get; init; } = default!;
+    /// <summary>The controller action descriptor — used to build the invoker. Null for minimal API endpoints.</summary>
+    public ControllerActionDescriptor? ActionDescriptor { get; init; }
+
+    /// <summary>The endpoint for minimal API tools. When set, dispatch uses RequestDelegate instead of controller invoker.</summary>
+    public Endpoint? Endpoint { get; init; }
 
     /// <summary>
     /// Parameters that come from the route template (e.g. /orders/{id}).

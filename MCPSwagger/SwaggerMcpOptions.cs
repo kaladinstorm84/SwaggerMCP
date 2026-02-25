@@ -31,4 +31,11 @@ public sealed class SwaggerMcpOptions
     /// Useful for environment-specific exclusions.
     /// </summary>
     public Func<string, bool>? ToolFilter { get; set; }
+
+    /// <summary>
+    /// Header names to forward from the incoming MCP request into the synthetic HttpContext
+    /// when dispatching tool calls. Enables the dispatched action to see the same auth (e.g. Bearer token).
+    /// Default is ["Authorization"]. Set to empty or null to disable forwarding.
+    /// </summary>
+    public IReadOnlyList<string>? ForwardHeaders { get; set; } = ["Authorization"];
 }

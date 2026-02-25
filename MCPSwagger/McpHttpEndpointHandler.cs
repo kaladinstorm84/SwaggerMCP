@@ -108,7 +108,7 @@ internal sealed class McpHttpEndpointHandler
                 "initialize" => HandleInitialize(@params),
                 "notifications/initialized" => null, // fire and forget, no response
                 "tools/list" => HandleToolsList(),
-                "tools/call" => await HandleToolsCallAsync(@params, context.RequestAborted),
+                "tools/call" => await HandleToolsCallAsync(@params, context),
                 _ => throw new McpMethodNotFoundException($"Method not found: {method}")
             };
 
@@ -160,7 +160,7 @@ internal sealed class McpHttpEndpointHandler
         return new { tools };
     }
 
-    private async Task<object> HandleToolsCallAsync(JsonElement @params, CancellationToken ct)
+    private async Task<object> HandleToolsCallAsync(JsonElement @params, HttpContext httpContext)
     {
         if (@params.ValueKind == JsonValueKind.Undefined)
             throw new McpInvalidParamsException("tools/call requires params");
@@ -178,7 +178,7 @@ internal sealed class McpHttpEndpointHandler
                 args[prop.Name] = prop.Value;
         }
 
-        var result = await _toolHandler.HandleCallAsync(toolName, args, ct);
+        var result = await _toolHandler.HandleCallAsync(toolName, args, httpContext.RequestAborted, httpContext);
 
         // MCP tool result format
         return new

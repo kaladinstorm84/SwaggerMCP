@@ -3,7 +3,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Options;
 using SwaggerMcp.Discovery;
+using SwaggerMcp.Options;
 
 namespace SwaggerMcp.Dispatch;
 
@@ -16,23 +18,28 @@ public sealed class SyntheticHttpContextFactory
 {
     private readonly IHttpContextFactory _httpContextFactory;
     private readonly IServiceProvider _serviceProvider;
+    private readonly SwaggerMcpOptions _options;
 
     public SyntheticHttpContextFactory(
         IHttpContextFactory httpContextFactory,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IOptions<SwaggerMcpOptions> options)
     {
         _httpContextFactory = httpContextFactory;
         _serviceProvider = serviceProvider;
+        _options = options.Value;
     }
 
     /// <summary>
     /// Builds a synthetic HttpContext populated from the MCP tool arguments.
     /// Route values, query string, and body stream are all set appropriately.
+    /// If sourceContext is provided and ForwardHeaders is configured, copies those headers.
     /// </summary>
     public HttpContext Build(
         McpToolDescriptor descriptor,
         IReadOnlyDictionary<string, JsonElement> args,
-        IServiceScope scope)
+        IServiceScope scope,
+        HttpContext? sourceContext = null)
     {
         var features = new FeatureCollection();
         features.Set<IHttpRequestFeature>(new HttpRequestFeature());
@@ -46,7 +53,8 @@ public sealed class SyntheticHttpContextFactory
 
         // Set HTTP method and path
         context.Request.Method = descriptor.HttpMethod.ToUpperInvariant();
-        context.Request.Path = "/" + descriptor.RelativeUrl;
+        context.Request.PathBase = PathString.Empty;
+        context.Request.Path = "/" + descriptor.RelativeUrl.TrimStart('/');
         context.Request.Scheme = "https";
         context.Request.Host = new HostString("localhost");
 
@@ -69,6 +77,13 @@ public sealed class SyntheticHttpContextFactory
         }
 
         context.Request.RouteValues = routeValues;
+
+        // Ambient controller/action so LinkGenerator and CreatedAtAction can resolve routes
+        if (descriptor.ActionDescriptor is not null)
+        {
+            routeValues["controller"] = descriptor.ActionDescriptor.ControllerName;
+            routeValues["action"] = descriptor.ActionDescriptor.ActionName;
+        }
 
         // Set up routing feature so model binding can read route values
         context.Features.Set<IRoutingFeature>(new RoutingFeature
@@ -122,6 +137,19 @@ public sealed class SyntheticHttpContextFactory
         // Set response body to a writable MemoryStream so we can capture output
         var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
+
+        // Forward headers from the MCP request (e.g. Authorization) so the dispatched action sees the same auth
+        if (sourceContext is not null && _options.ForwardHeaders is { Count: > 0 })
+        {
+            var sourceHeaders = sourceContext.Request.Headers;
+            var names = _options.ForwardHeaders;
+            for (var i = 0; i < names.Count; i++)
+            {
+                var name = names[i];
+                if (sourceHeaders.TryGetValue(name, out var value))
+                    context.Request.Headers[name] = value;
+            }
+        }
 
         return context;
     }

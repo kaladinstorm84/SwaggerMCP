@@ -19,6 +19,11 @@ app.UseSwaggerUI();
 app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();
+
+// Minimal API example: exposed as MCP tool via WithMcpTool
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }))
+   .WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" });
+
 app.MapSwaggerMcp();
 
 app.Run();

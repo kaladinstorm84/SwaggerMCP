@@ -48,10 +48,12 @@ internal sealed class McpSwaggerToolHandler
     /// <summary>
     /// Handles a tools/call request from the MCP client.
     /// </summary>
+    /// <param name="sourceContext">Optional HTTP context of the MCP request; when set, configured headers (e.g. Authorization) are forwarded to the dispatched action.</param>
     public async Task<McpToolResult> HandleCallAsync(
         string toolName,
         IReadOnlyDictionary<string, JsonElement> args,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpContext? sourceContext = null)
     {
         var descriptor = _discovery.GetTool(toolName);
 
@@ -61,7 +63,7 @@ internal sealed class McpSwaggerToolHandler
             return McpToolResult.Error($"Unknown tool: {toolName}");
         }
 
-        var result = await _dispatcher.DispatchAsync(descriptor, args, cancellationToken);
+        var result = await _dispatcher.DispatchAsync(descriptor, args, cancellationToken, sourceContext);
 
         if (result.IsSuccess)
         {

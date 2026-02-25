@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SwaggerMcp.Attributes;
+using SwaggerMcp.Metadata;
 using SwaggerMcp.Options;
 using SwaggerMcp.Schema;
 
@@ -15,6 +17,7 @@ namespace SwaggerMcp.Discovery;
 public sealed class McpToolDiscoveryService
 {
     private readonly IApiDescriptionGroupCollectionProvider _apiDescriptionProvider;
+    private readonly EndpointDataSource _endpointDataSource;
     private readonly McpSchemaBuilder _schemaBuilder;
     private readonly SwaggerMcpOptions _options;
     private readonly ILogger<McpToolDiscoveryService> _logger;
@@ -25,11 +28,13 @@ public sealed class McpToolDiscoveryService
 
     public McpToolDiscoveryService(
         IApiDescriptionGroupCollectionProvider apiDescriptionProvider,
+        EndpointDataSource endpointDataSource,
         McpSchemaBuilder schemaBuilder,
         IOptions<SwaggerMcpOptions> options,
         ILogger<McpToolDiscoveryService> logger)
     {
         _apiDescriptionProvider = apiDescriptionProvider;
+        _endpointDataSource = endpointDataSource;
         _schemaBuilder = schemaBuilder;
         _options = options.Value;
         _logger = logger;
@@ -103,6 +108,9 @@ public sealed class McpToolDiscoveryService
             }
 
             var descriptor = BuildDescriptor(apiDescription, controllerDescriptor, mcpAttr);
+            if (descriptor.Endpoint is null)
+                _logger.LogWarning("No matching endpoint found for {Controller}.{Action}; CreatedAtAction/link generation may fail.",
+                    controllerDescriptor.ControllerName, controllerDescriptor.ActionName);
             registry[descriptor.Name] = descriptor;
 
             _logger.LogDebug(
@@ -112,8 +120,83 @@ public sealed class McpToolDiscoveryService
                 descriptor.RelativeUrl);
         }
 
+        // Discover minimal API endpoints with McpToolEndpointMetadata
+        foreach (var endpoint in _endpointDataSource.Endpoints)
+        {
+            var mcpMeta = endpoint.Metadata.GetMetadata<McpToolEndpointMetadata>();
+            if (mcpMeta is null) continue;
+
+            if (_options.ToolFilter is not null && !_options.ToolFilter(mcpMeta.Name))
+            {
+                _logger.LogDebug("Tool '{ToolName}' excluded by ToolFilter", mcpMeta.Name);
+                continue;
+            }
+
+            if (registry.ContainsKey(mcpMeta.Name))
+            {
+                _logger.LogWarning("Duplicate MCP tool name '{ToolName}' (minimal API) — skipping.", mcpMeta.Name);
+                continue;
+            }
+
+            var minDescriptor = BuildMinimalApiDescriptor(endpoint, mcpMeta);
+            registry[minDescriptor.Name] = minDescriptor;
+
+            _logger.LogDebug(
+                "Registered MCP tool '{ToolName}' (minimal) → {HttpMethod} {RelativeUrl}",
+                minDescriptor.Name,
+                minDescriptor.HttpMethod,
+                minDescriptor.RelativeUrl);
+        }
+
         _logger.LogInformation("SwaggerMcp: discovered {Count} MCP tool(s)", registry.Count);
         return registry;
+    }
+
+    private McpToolDescriptor BuildMinimalApiDescriptor(Endpoint endpoint, McpToolEndpointMetadata meta)
+    {
+        var routeParams = new List<McpParameterDescriptor>();
+        var httpMethod = "GET";
+        var relativeUrl = "";
+
+        if (endpoint is RouteEndpoint routeEndpoint)
+        {
+            var pattern = routeEndpoint.RoutePattern;
+            relativeUrl = pattern.RawText?.TrimStart('/') ?? "";
+            foreach (var param in pattern.Parameters)
+            {
+                routeParams.Add(new McpParameterDescriptor
+                {
+                    Name = param.Name ?? "",
+                    ParameterType = typeof(string),
+                    IsRequired = !param.IsOptional,
+                    Description = null
+                });
+            }
+        }
+
+        var methodMeta = endpoint.Metadata.GetMetadata<HttpMethodMetadata>();
+        if (methodMeta?.HttpMethods is { Count: > 0 })
+            httpMethod = methodMeta.HttpMethods.First();
+
+        var descriptor = new McpToolDescriptor
+        {
+            Name = meta.Name,
+            Description = meta.Description,
+            Tags = meta.Tags,
+            ApiDescription = null,
+            ActionDescriptor = null,
+            Endpoint = endpoint,
+            RouteParameters = routeParams,
+            QueryParameters = [],
+            Body = null,
+            HttpMethod = httpMethod,
+            RelativeUrl = relativeUrl
+        };
+
+        if (_options.IncludeInputSchemas)
+            descriptor.InputSchemaJson = _schemaBuilder.BuildSchema(descriptor);
+
+        return descriptor;
     }
 
     private McpToolDescriptor BuildDescriptor(
@@ -162,10 +245,13 @@ public sealed class McpToolDiscoveryService
         var descriptor = new McpToolDescriptor
         {
             Name = mcpAttr.Name,
-            Description = mcpAttr.Description,
+            Description = !string.IsNullOrWhiteSpace(mcpAttr.Description)
+                ? mcpAttr.Description
+                : XmlDocHelper.GetMethodSummary(controllerDescriptor.MethodInfo),
             Tags = mcpAttr.Tags,
             ApiDescription = apiDescription,
             ActionDescriptor = controllerDescriptor,
+            Endpoint = FindEndpointForAction(controllerDescriptor),
             RouteParameters = routeParams,
             QueryParameters = queryParams,
             Body = body,
@@ -180,5 +266,25 @@ public sealed class McpToolDiscoveryService
         }
 
         return descriptor;
+    }
+
+    /// <summary>
+    /// Finds the RouteEndpoint that corresponds to the given controller action so we can set it on the synthetic request.
+    /// This avoids 500s when the action (e.g. CreatedAtAction) uses endpoint-aware services like LinkGenerator.
+    /// </summary>
+    private Endpoint? FindEndpointForAction(ControllerActionDescriptor controllerDescriptor)
+    {
+        foreach (var endpoint in _endpointDataSource.Endpoints)
+        {
+            var actionMeta = endpoint.Metadata.GetMetadata<ControllerActionDescriptor>();
+            if (actionMeta is null) continue;
+            // Prefer Id match; fallback to controller+action in case descriptor instances differ
+            if (string.Equals(actionMeta.Id, controllerDescriptor.Id, StringComparison.Ordinal))
+                return endpoint;
+            if (string.Equals(actionMeta.ControllerName, controllerDescriptor.ControllerName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(actionMeta.ActionName, controllerDescriptor.ActionName, StringComparison.OrdinalIgnoreCase))
+                return endpoint;
+        }
+        return null;
     }
 }

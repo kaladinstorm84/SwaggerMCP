@@ -88,6 +88,7 @@ builder.Services.AddSwaggerMcp(options =>
     options.ServerVersion = "2.0.0";       // shown during MCP handshake
     options.RoutePrefix = "/mcp";          // where the endpoint is mounted
     options.IncludeInputSchemas = true;    // attach JSON Schema to tools (helps LLM)
+    options.ForwardHeaders = ["Authorization"];  // copy these from MCP request to tool dispatch
 
     // Optional: filter which tagged tools are exposed at runtime
     options.ToolFilter = name => !name.StartsWith("admin_");
@@ -117,6 +118,7 @@ app.MapSwaggerMcp("/api/mcp");  // overrides options.RoutePrefix
 - **Per-action only** — `[McpTool]` goes on individual action methods, not controllers
 - **One name per application** — duplicate names are logged as warnings and skipped
 - **Any HTTP method** — GET, POST, PATCH, DELETE all work
+- **Description** — If you omit `Description`, SwaggerMcp will use the method's XML doc `<summary>` when available (Phase 1).
 
 ---
 
@@ -171,6 +173,7 @@ When the MCP client calls a tool, SwaggerMcp:
 
 This means:
 - `[Authorize]` works — set up auth on the MCP endpoint and your action filters enforce it
+- **Auth forwarding** — Headers listed in `ForwardHeaders` (e.g. `Authorization`) are copied from the MCP request to the synthetic request, so the dispatched action sees the same auth (Phase 1).
 - `[ValidateModel]` / `ModelState` works — validation errors return as MCP error results
 - Exception filters work — unhandled exceptions are caught and returned gracefully
 - Your existing DI services, repositories, and business logic are called as-is
@@ -227,13 +230,29 @@ mcpAPI/
 └── README.md
 ```
 
+## Minimal API endpoints (Phase 2)
+
+You can expose minimal API endpoints as MCP tools by calling `.WithMcpTool(...)` when mapping the endpoint:
+
+```csharp
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }))
+   .WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" });
+```
+
+- **Name** (required) — snake_case tool name for the LLM.
+- **Description** (optional) — shown to the LLM.
+- **Tags** (optional) — for grouping/filtering.
+
+Discovery reads from `EndpointDataSource` in addition to controller API descriptions; dispatch invokes the endpoint's `RequestDelegate` directly. Route parameters are supported; query/body binding for minimal APIs may be limited depending on the route pattern.
+
 ---
 
 ## Known Limitations
 
 - **Streamable HTTP only** — stdio and SSE transports are not currently supported
-- **Controller actions only** — minimal API endpoints (`.MapGet(...)` etc.) are not yet supported
+- **Minimal APIs** — supported via `WithMcpTool`; route params are bound; query/body handling is minimal-API specific
 - **[FromForm] and file uploads** — not supported; JSON-only body binding
+- **CreatedAtAction** — controller actions that return `CreatedAtAction` are dispatched with the matched endpoint set so link generation can succeed. If you still see 500s, use `return Created(Url.Action(nameof(OtherAction), new { id = entity.Id })!, entity);` instead.
 - **Streaming responses** — `IAsyncEnumerable<T>` and SSE action results are not captured correctly
 
 ---
@@ -262,7 +281,5 @@ This creates `nupkgs\SwaggerMcp.1.0.0.nupkg`. The library has no dependency on S
 
 PRs welcome. The most impactful next additions would be:
 
-1. Minimal API endpoint support (read from `IEndpointDataSource` in addition to `IApiDescriptionGroupCollectionProvider`)
-2. SSE transport support
-3. XML doc comment extraction for auto-populating descriptions
-4. Auth token forwarding from MCP client to dispatched action
+1. SSE transport support
+2. Richer minimal API parameter binding (query/body from route delegate)

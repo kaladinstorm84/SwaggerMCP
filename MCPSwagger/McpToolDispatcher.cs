@@ -58,10 +58,12 @@ public sealed class McpToolDispatcher
     /// Dispatches the given tool with the provided JSON arguments.
     /// Returns the serialized response from the action.
     /// </summary>
+    /// <param name="sourceContext">Optional MCP request context; when set, configured headers (e.g. Authorization) are forwarded to the synthetic request.</param>
     public async Task<DispatchResult> DispatchAsync(
         McpToolDescriptor descriptor,
         IReadOnlyDictionary<string, JsonElement> args,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        HttpContext? sourceContext = null)
     {
         _logger.LogDebug("Dispatching MCP tool '{ToolName}' with {ArgCount} argument(s)",
             descriptor.Name, args.Count);
@@ -72,7 +74,7 @@ public sealed class McpToolDispatcher
         HttpContext context;
         try
         {
-            context = _contextFactory.Build(descriptor, args, scope);
+            context = _contextFactory.Build(descriptor, args, scope, sourceContext);
         }
         catch (Exception ex)
         {
@@ -80,9 +82,24 @@ public sealed class McpToolDispatcher
             return DispatchResult.Failure(400, $"Failed to bind arguments: {ex.Message}");
         }
 
-        // Build the ActionContext
+        // Set endpoint when available so pipeline (e.g. CreatedAtAction, LinkGenerator) sees a matched endpoint
+        if (descriptor.Endpoint is not null)
+            context.SetEndpoint(descriptor.Endpoint);
+
+        if (descriptor.Endpoint is not null && descriptor.ActionDescriptor is null)
+        {
+            return await DispatchMinimalEndpointAsync(descriptor, context);
+        }
+
+        if (descriptor.ActionDescriptor is null)
+        {
+            _logger.LogError("Tool '{ToolName}' has neither ActionDescriptor nor Endpoint", descriptor.Name);
+            return DispatchResult.Failure(500, "Invalid tool descriptor");
+        }
+
+        // Controller action path: build ActionContext and invoke via IActionInvokerFactory
         var routeData = new RouteData(context.Request.RouteValues);
-        var actionContext = new ActionContext(context, routeData, descriptor.ActionDescriptor);
+        var actionContext = new ActionContext(context, routeData, descriptor.ActionDescriptor!);
 
         // Get the invoker factory and create an invoker for this action
         var invokerFactory = scope.ServiceProvider.GetRequiredService<IActionInvokerFactory>();
@@ -105,6 +122,21 @@ public sealed class McpToolDispatcher
             return DispatchResult.Failure(500, $"Internal error: {ex.Message}");
         }
 
+        return await ExtractResponseAsync(context, descriptor.Name);
+    }
+
+    private async Task<DispatchResult> DispatchMinimalEndpointAsync(McpToolDescriptor descriptor, HttpContext context)
+    {
+        context.SetEndpoint(descriptor.Endpoint!);
+        try
+        {
+            await descriptor.Endpoint!.RequestDelegate!(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception during dispatch of minimal tool '{ToolName}'", descriptor.Name);
+            return DispatchResult.Failure(500, $"Internal error: {ex.Message}");
+        }
         return await ExtractResponseAsync(context, descriptor.Name);
     }
 
