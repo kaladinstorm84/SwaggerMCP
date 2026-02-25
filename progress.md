@@ -111,6 +111,12 @@
 - Result:
   - Build/test execution is currently blocked on this runner because the .NET SDK is not installed (`dotnet: command not found`).
 
+## Failing tests fixed (ToolsList_ReturnsExpectedInputSchemaShapes)
+
+- **Cause:** Integration test expected `update_order_status` input schema to have `status.pattern` (from `[RegularExpression]` on `UpdateStatusRequest.Status`). NJsonSchema does not populate `Pattern` from `[RegularExpression]` by default, so the emitted schema had no `pattern`.
+- **Fix:** In **McpSchemaBuilder.ExtractBodyProperties**, after building each body property from NJsonSchema, call new **GetRegularExpressionPattern(bodyType, propName)** to get `[RegularExpression].Pattern` via reflection and set `propObj["pattern"]` when present. Added `using System.ComponentModel.DataAnnotations` and `System.Reflection`; null/empty propertyName and PascalCase fallback for property lookup.
+- **Test:** **McpEndpointIntegrationTests** line 247: **TestContext.Current.TestOutputHelper** dereference warning fixed with `TestContext.Current?.TestOutputHelper?.WriteLine(...)`.
+
 ## README.md updated for current project state
 
 - How It Works: discovery from controllers + minimal APIs; GET and POST /mcp; dispatch to action or endpoint.
