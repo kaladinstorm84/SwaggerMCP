@@ -4,23 +4,23 @@ Expose your existing ASP.NET Core API as an MCP (Model Context Protocol) server 
 
 ## How It Works
 
-Tag any controller action with `[McpTool]` and SwaggerMcp will:
+Tag controller actions with `[McpTool]` or minimal APIs with `.WithMcpTool(...)`. SwaggerMcp will:
 
-1. **Discover** it at startup via ASP.NET Core's `IApiDescriptionGroupCollectionProvider` (same source as Swagger)
-2. **Generate** a JSON Schema for its inputs by merging route params, query params, and body properties
-3. **Expose** it via a `POST /mcp` endpoint that speaks the MCP Streamable HTTP transport
-4. **Dispatch** calls in-process through your real action pipeline — filters, validation, and authorization all run normally
+1. **Discover** tools at startup from controller API descriptions (same source as Swagger) and from minimal API endpoints that use `WithMcpTool`
+2. **Generate** a JSON Schema for each tool's inputs (route, query, and body merged)
+3. **Expose** a single endpoint (GET and POST `/mcp`) that speaks the MCP Streamable HTTP transport
+4. **Dispatch** tool calls in-process through your real action or endpoint pipeline — filters, validation, and authorization run normally
 
 ```
 MCP Client (Claude Desktop, Claude.ai, etc.)
     │
-    │  POST /mcp  (JSON-RPC 2.0, MCP protocol)
+    │  GET /mcp (info)  or  POST /mcp (JSON-RPC 2.0)
     ▼
 SwaggerMcp Endpoint
     │
-    │  in-process dispatch
+    │  in-process dispatch (controller or minimal endpoint)
     ▼
-Your Controller Action  ← [McpTool] tagged
+Your Action / Endpoint  ← [McpTool] or .WithMcpTool(...)
     │
     │  real response
     ▼
@@ -34,7 +34,7 @@ MCP Client gets structured result
 ### 1. Install
 
 ```xml
-<PackageReference Include="SwaggerMcp" Version="1.0.0" />
+<PackageReference Include="SwaggerMcp" Version="1.0.2" />
 ```
 
 ### 2. Register services
@@ -51,7 +51,7 @@ builder.Services.AddSwaggerMcp(options =>
 ### 3. Map the endpoint
 
 ```csharp
-app.MapSwaggerMcp(); // registers POST /mcp
+app.MapSwaggerMcp(); // registers GET and POST /mcp
 ```
 
 ### 4. Tag your actions
@@ -75,7 +75,7 @@ public class OrdersController : ControllerBase
 }
 ```
 
-That's it. Point any MCP client at `POST /mcp` and it will see your tagged endpoints as tools.
+Point any MCP client at your app's `/mcp` URL; it will see your tagged controller actions and minimal endpoints as tools.
 
 ---
 
@@ -118,7 +118,7 @@ app.MapSwaggerMcp("/api/mcp");  // overrides options.RoutePrefix
 - **Per-action only** — `[McpTool]` goes on individual action methods, not controllers
 - **One name per application** — duplicate names are logged as warnings and skipped
 - **Any HTTP method** — GET, POST, PATCH, DELETE all work
-- **Description** — If you omit `Description`, SwaggerMcp will use the method's XML doc `<summary>` when available (Phase 1).
+- **Description** — If you omit `Description`, SwaggerMcp uses the method's XML doc `<summary>` when available.
 
 ---
 
@@ -167,16 +167,35 @@ Produces this MCP input schema:
 When the MCP client calls a tool, SwaggerMcp:
 
 1. Creates a fresh **DI scope** (same as a real request)
-2. Builds a **synthetic `HttpContext`** with route values, query string, and body stream populated from the JSON arguments
-3. Invokes the action via `IActionInvokerFactory` — **your full filter pipeline runs**
-4. Captures the response body and forwards it as the MCP result
+2. Builds a **synthetic `HttpContext`** with route values (including ambient `controller`/`action` for link generation), query string, and body from the JSON arguments
+3. Sets the matched **endpoint** on the context so `CreatedAtAction` and `LinkGenerator` work
+4. Invokes the controller action via `IActionInvokerFactory` or the minimal endpoint's `RequestDelegate`
+5. Captures the response body and forwards it as the MCP result
 
 This means:
 - `[Authorize]` works — set up auth on the MCP endpoint and your action filters enforce it
-- **Auth forwarding** — Headers listed in `ForwardHeaders` (e.g. `Authorization`) are copied from the MCP request to the synthetic request, so the dispatched action sees the same auth (Phase 1).
+- **Auth forwarding** — Headers in `ForwardHeaders` (e.g. `Authorization`) are copied from the MCP request to the synthetic request
+- **CreatedAtAction** works — synthetic request has endpoint and controller/action route values so link generation succeeds
 - `[ValidateModel]` / `ModelState` works — validation errors return as MCP error results
 - Exception filters work — unhandled exceptions are caught and returned gracefully
 - Your existing DI services, repositories, and business logic are called as-is
+
+---
+
+## Minimal API endpoints
+
+You can expose minimal API endpoints as MCP tools by calling `.WithMcpTool(...)` when mapping:
+
+```csharp
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }))
+   .WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" });
+```
+
+- **Name** (required) — snake_case tool name for the LLM
+- **Description** (optional) — shown to the LLM
+- **Tags** (optional) — for grouping/filtering
+
+Discovery includes both controller actions (from API descriptions) and minimal endpoints (from `EndpointDataSource`). Route parameters on minimal APIs are supported; query/body binding is limited to what the route pattern exposes.
 
 ---
 
@@ -211,82 +230,48 @@ app.MapSwaggerMcp().RequireAuthorization("McpPolicy");
 
 ```
 mcpAPI/
-├── MCPSwagger/                    ← Library (packs as NuGet)
-│   ├── Attributes/McpToolAttribute.cs
-│   ├── Discovery/
-│   ├── Schema/McpSchemaBuilder.cs (NJsonSchema)
-│   ├── Dispatch/
-│   ├── Transport/
-│   ├── Extensions/
-│   ├── SwaggerMcpOptions.cs
-│   └── MCPSwagger.csproj          (PackageId: SwaggerMcp, Version: 1.0.0)
-├── MCPSwagger.Sample/             ← Sample app (Program + Orders API + Swagger UI)
-│   ├── Program.cs
-│   └── Controllers/OrdersController.cs
-├── MCPSwagger.Tests/              ← Unit + integration tests
-├── TestService/                   ← Example API consuming MCPSwagger (project ref)
+├── MCPSwagger/                    ← Library (NuGet package SwaggerMcp)
+│   ├── Attributes/                ← [McpTool]
+│   ├── Discovery/                 ← Controller + minimal API tool discovery
+│   ├── Schema/                    ← JSON Schema for tool inputs (NJsonSchema)
+│   ├── Dispatch/                  ← Synthetic HttpContext, controller/minimal invoke
+│   ├── Metadata/                  ← McpToolEndpointMetadata for minimal APIs
+│   ├── Extensions/                ← AddSwaggerMcp, MapSwaggerMcp, WithMcpTool
+│   ├── Options/                   ← SwaggerMcpOptions
+│   └── MCPSwagger.csproj         (PackageId: SwaggerMcp, Version: 1.0.2)
+├── MCPSwagger.Sample/             ← Sample (Orders API, health minimal endpoint, optional auth)
 ├── nupkgs/                        ← dotnet pack -o nupkgs
 ├── progress.md
 └── README.md
 ```
 
-## Minimal API endpoints (Phase 2)
-
-You can expose minimal API endpoints as MCP tools by calling `.WithMcpTool(...)` when mapping the endpoint:
-
-```csharp
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }))
-   .WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" });
-```
-
-- **Name** (required) — snake_case tool name for the LLM.
-- **Description** (optional) — shown to the LLM.
-- **Tags** (optional) — for grouping/filtering.
-
-Discovery reads from `EndpointDataSource` in addition to controller API descriptions; dispatch invokes the endpoint's `RequestDelegate` directly. Route parameters are supported; query/body binding for minimal APIs may be limited depending on the route pattern.
-
 ---
 
 ## Known Limitations
 
-- **Streamable HTTP only** — stdio and SSE transports are not currently supported
-- **Minimal APIs** — supported via `WithMcpTool`; route params are bound; query/body handling is minimal-API specific
+- **Streamable HTTP only** — stdio and SSE transports are not supported
+- **Minimal APIs** — supported via `WithMcpTool`; route params are bound; query/body binding is limited
 - **[FromForm] and file uploads** — not supported; JSON-only body binding
-- **CreatedAtAction** — controller actions that return `CreatedAtAction` are dispatched with the matched endpoint set so link generation can succeed. If you still see 500s, use `return Created(Url.Action(nameof(OtherAction), new { id = entity.Id })!, entity);` instead.
 - **Streaming responses** — `IAsyncEnumerable<T>` and SSE action results are not captured correctly
+- If **CreatedAtAction** or link generation ever fails in your environment, use `return Created(Url.Action(nameof(OtherAction), new { id = entity.Id })!, entity);` as a fallback
 
 ---
 
 ## Build
 
-- Target: .NET 10.0.
+- **Targets:** .NET 9.0 and .NET 10.0 (library); sample and tests may target a single framework.
 - **Library:** `dotnet build MCPSwagger\MCPSwagger.csproj`
-- **Sample app:** `dotnet build MCPSwagger.Sample\MCPSwagger.Sample.csproj`
+- **Sample:** `dotnet build MCPSwagger.Sample\MCPSwagger.Sample.csproj`
 - **Tests:** `dotnet build MCPSwagger.Tests\MCPSwagger.Tests.csproj` then `dotnet test MCPSwagger.Tests\MCPSwagger.Tests.csproj`
-- **TestService (consumer):** `dotnet build TestService\TestService.csproj`
+- **TestService:** `dotnet build TestService\TestService.csproj`
 
-### Test coverage highlights
+### Test coverage
 
-The integration and schema tests now explicitly verify:
-
-- JSON-RPC validation and error handling (invalid JSON-RPC version, malformed JSON payloads)
-- Model binding / model-state failures surfaced as MCP tool errors
-- Wrong argument types and empty argument payload behavior
-- Unauthorized calls to `[Authorize]`-protected MCP tools returning MCP errors instead of raw HTTP leakage
-- `tools/list` schema shape correctness (property types and required arrays)
-- Schema edge cases for nested objects, arrays/lists, enum properties, route+body merged inputs, and empty body types
-
-## NuGet package
-
-To produce a `.nupkg`:
-
-```bash
-dotnet pack MCPSwagger\MCPSwagger.csproj -c Release -o .\nupkgs
-```
-
-This creates `nupkgs\SwaggerMcp.1.0.0.nupkg`. The library has no dependency on Swashbuckle or test packages; only **NJsonSchema** is included. Package metadata (id, version, description, tags, license) is in **MCPSwagger.csproj**. To publish to NuGet.org, run `dotnet nuget push nupkgs\SwaggerMcp.1.0.0.nupkg --source https://api.nuget.org/v3/index.json --api-key YOUR_KEY`.
+Integration and schema tests cover JSON-RPC validation and errors, model binding failures, wrong/empty arguments, unauthorized `[Authorize]` tool calls, `tools/list` schema shape, and schema edge cases (nested objects, arrays, enums, route+body merging).
 
 ---
+
+
 
 ## Contributing
 

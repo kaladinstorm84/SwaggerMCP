@@ -110,3 +110,14 @@
   - `dotnet` location checks (`command -v dotnet`, `whereis dotnet`, `/usr/share/dotnet`)
 - Result:
   - Build/test execution is currently blocked on this runner because the .NET SDK is not installed (`dotnet: command not found`).
+
+## README.md updated for current project state
+
+- How It Works: discovery from controllers + minimal APIs; GET and POST /mcp; dispatch to action or endpoint.
+- Quick Start: package version 1.0.2; MapSwaggerMcp registers GET and POST.
+- In-Process Dispatch: synthetic context has ambient controller/action and endpoint; CreatedAtAction supported.
+- Minimal API section moved before Connecting MCP Clients; single consolidated section.
+- Project Structure: reflects Metadata/, Options/, controller + minimal discovery, sample with health + optional auth.
+- Known Limitations: streamlined; CreatedAtAction as fallback note only.
+- Build: targets net9.0 and net10.0; simplified test coverage paragraph.
+- NuGet: version 1.0.2; NJsonSchema-only dependency note.

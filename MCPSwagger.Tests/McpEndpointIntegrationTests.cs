@@ -244,6 +244,7 @@ public sealed class McpEndpointIntegrationTests : IClassFixture<WebApplicationFa
         });
 
         var result = response["result"]!.AsObject();
+        TestContext.Current.TestOutputHelper.WriteLine(response.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         result["isError"]!.GetValue<bool>().Should().BeTrue();
         ExtractTextContent(response).Should().Contain("HTTP 401");
     }
