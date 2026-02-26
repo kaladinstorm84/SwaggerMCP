@@ -1,14 +1,14 @@
 # ZeroMcp
 
-**This is the repository (GitLab/project) README** — full documentation, build, contributing, and project structure. The **NuGet package** ships with a shorter, consumer-focused README in `MCPSwagger/README.md`.
+**This is the repository (GitLab/project) README** — full documentation, build, contributing, and project structure. The **NuGet package** ships with a shorter, consumer-focused README in `ZeroMCP/README.md`.
 
 Expose your existing ASP.NET Core API as an MCP (Model Context Protocol) server with a single attribute and two lines of setup. No separate process. No code duplication.
 
 ## How It Works
 
-Tag controller actions with `[Mcp]` or minimal APIs with `.WithMcpTool(...)`. SwaggerMcp will:
+Tag controller actions with `[Mcp]` or minimal APIs with `.AsMcp(...)`. ZeroMcp will:
 
-1. **Discover** tools at startup from controller API descriptions (same source as Swagger) and from minimal API endpoints that use `WithMcpTool`
+1. **Discover** tools at startup from controller API descriptions (same source as Swagger) and from minimal API endpoints that use `AsMcp`
 2. **Generate** a JSON Schema for each tool's inputs (route, query, and body merged)
 3. **Expose** a single endpoint (GET and POST `/mcp`) that speaks the MCP Streamable HTTP transport
 4. **Dispatch** tool calls in-process through your real action or endpoint pipeline — filters, validation, and authorization run normally
@@ -18,7 +18,7 @@ MCP Client (Claude Desktop, Claude.ai, etc.)
     │
     │  GET /mcp (info)  or  POST /mcp (JSON-RPC 2.0)
     ▼
-SwaggerMcp Endpoint
+ZeroMcp Endpoint
     │
     │  in-process dispatch (controller or minimal endpoint)
     ▼
@@ -36,14 +36,14 @@ MCP Client gets structured result
 ### 1. Install
 
 ```xml
-<PackageReference Include="SwaggerMcp" Version="1.0.2" />
+<PackageReference Include="ZeroMcp" Version="1.*" />
 ```
 
 ### 2. Register services
 
 ```csharp
 // Program.cs
-builder.Services.AddSwaggerMcp(options =>
+builder.Services.AddZeroMcp(options =>
 {
     options.ServerName = "My Orders API";
     options.ServerVersion = "1.0.0";
@@ -53,7 +53,7 @@ builder.Services.AddSwaggerMcp(options =>
 ### 3. Map the endpoint
 
 ```csharp
-app.MapSwaggerMcp(); // registers GET and POST /mcp
+app.MapZeroMcp(); // registers GET and POST /mcp
 ```
 
 ### 4. Tag your actions
@@ -64,11 +64,11 @@ app.MapSwaggerMcp(); // registers GET and POST /mcp
 public class OrdersController : ControllerBase
 {
     [HttpGet("{id}")]
-    [McpTool("get_order", Description = "Retrieves a single order by ID.")]
+    [Mcp("get_order", Description = "Retrieves a single order by ID.")]
     public ActionResult<Order> GetOrder(int id) { ... }
 
     [HttpPost]
-    [McpTool("create_order", Description = "Creates a new order. Returns the created order.")]
+    [Mcp("create_order", Description = "Creates a new order. Returns the created order.")]
     public ActionResult<Order> CreateOrder([FromBody] CreateOrderRequest request) { ... }
 
     [HttpDelete("{id}")]
@@ -86,7 +86,7 @@ For **versioning and breaking-change policy**, see [VERSIONING.md](VERSIONING.md
 ## Configuration
 
 ```csharp
-builder.Services.AddSwaggerMcp(options =>
+builder.Services.AddZeroMcp(options =>
 {
     options.ServerName = "My API";         // shown during MCP handshake
     options.ServerVersion = "2.0.0";       // shown during MCP handshake
@@ -111,7 +111,7 @@ builder.Services.AddSwaggerMcp(options =>
 - **Structured logging** — Each MCP request is logged with a scope containing `CorrelationId`, `JsonRpcId`, and `Method`. Tool invocations log `ToolName`, `StatusCode`, `IsError`, `DurationMs`, and `CorrelationId`.
 - **Execution timing** — Request duration and per-tool duration are recorded and included in log messages.
 - **Correlation ID** — Send `X-Correlation-ID` (or the header name in `CorrelationIdHeader`) on the request; the same value is echoed in the response and propagated to the synthetic request (`TraceIdentifier` and `HttpContext.Items`). If omitted, a new GUID is generated.
-- **Metrics sink** — Implement `IMcpMetricsSink` and register it after `AddSwaggerMcp()` to record tool invocations (tool name, status code, success/failure, duration). The default is a no-op.
+- **Metrics sink** — Implement `IMcpMetricsSink` and register it after `AddZeroMcp()` to record tool invocations (tool name, status code, success/failure, duration). The default is a no-op.
 - **OpenTelemetry** — Set `EnableOpenTelemetryEnrichment = true` to tag the current `Activity` with `mcp.tool`, `mcp.status_code`, `mcp.is_error`, `mcp.duration_ms`, and `mcp.correlation_id` when present.
 
 ### Governance & tool control (Phase 1)
@@ -129,7 +129,7 @@ Tools that are hidden from `tools/list` are also not callable: a direct `tools/c
 ### Custom route
 
 ```csharp
-app.MapSwaggerMcp("/api/mcp");  // overrides options.RoutePrefix
+app.MapZeroMcp("/api/mcp");  // overrides options.RoutePrefix
 ```
 
 ### Using controllers and minimal APIs together
@@ -139,11 +139,11 @@ If you expose **both** controller actions (with `[McpTool]`) and minimal API end
 ```csharp
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();   // required for controller tool discovery
-// ... AddSwaggerMcp(...) ...
+// ... AddZeroMcp(...) ...
 
 app.MapControllers();
 // minimal APIs with .WithMcpTool(...)
-app.MapSwaggerMcp();
+app.MapZeroMcp();
 ```
 
 Without `AddEndpointsApiExplorer()`, only minimal API tools will appear in `tools/list`; controller actions will be missing because they are discovered from the same API description source as Swagger.
@@ -167,13 +167,13 @@ Without `AddEndpointsApiExplorer()`, only minimal API tools will appear in `tool
 - **Per-action only** — `[McpTool]` goes on individual action methods, not controllers
 - **One name per application** — duplicate names are logged as warnings and skipped
 - **Any HTTP method** — GET, POST, PATCH, DELETE all work
-- **Description** — If you omit `Description`, SwaggerMcp uses the method's XML doc `<summary>` when available.
+- **Description** — If you omit `Description`, ZeroMcp uses the method's XML doc `<summary>` when available.
 
 ---
 
 ## How Parameters Are Mapped
 
-SwaggerMcp merges all parameter sources into a single flat JSON Schema object that the LLM fills in:
+ZeroMcp merges all parameter sources into a single flat JSON Schema object that the LLM fills in:
 
 | Parameter source | MCP mapping |
 |---|---|
@@ -213,7 +213,7 @@ Produces this MCP input schema:
 
 ## In-Process Dispatch
 
-When the MCP client calls a tool, SwaggerMcp:
+When the MCP client calls a tool, ZeroMcp:
 
 1. Creates a fresh **DI scope** (same as a real request)
 2. Builds a **synthetic `HttpContext`** with route values (including ambient `controller`/`action` for link generation), query string, and body from the JSON arguments
@@ -267,10 +267,10 @@ Add to `claude_desktop_config.json`:
 
 ### Claude.ai (remote MCP)
 
-Point at your deployed API's `/mcp` endpoint. For production, add authentication — SwaggerMcp doesn't impose any auth on the `/mcp` route itself, so you can apply standard ASP.NET Core auth middleware or `.RequireAuthorization()` as needed:
+Point at your deployed API's `/mcp` endpoint. For production, add authentication — ZeroMcp doesn't impose any auth on the `/mcp` route itself, so you can apply standard ASP.NET Core auth middleware or `.RequireAuthorization()` as needed:
 
 ```csharp
-app.MapSwaggerMcp().RequireAuthorization("McpPolicy");
+app.MapZeroMcp().RequireAuthorization("McpPolicy");
 ```
 
 ---
@@ -290,16 +290,16 @@ When you add features or options, update both: details and examples here, short 
 
 ```
 mcpAPI/
-├── MCPSwagger/                    ← Library (NuGet package SwaggerMcp)
+├── MCPSwagger/                    ← Library (NuGet package ZeroMcp)
 │   ├── README.md                  ← Package README (NuGet)
 │   ├── Attributes/                ← [McpTool]
 │   ├── Discovery/                 ← Controller + minimal API tool discovery
 │   ├── Schema/                    ← JSON Schema for tool inputs (NJsonSchema)
 │   ├── Dispatch/                  ← Synthetic HttpContext, controller/minimal invoke
 │   ├── Metadata/                  ← McpToolEndpointMetadata for minimal APIs
-│   ├── Extensions/                ← AddSwaggerMcp, MapSwaggerMcp, WithMcpTool
-│   ├── Options/                   ← SwaggerMcpOptions
-│   └── MCPSwagger.csproj         (PackageId: SwaggerMcp, Version: 1.0.2)
+│   ├── Extensions/                ← AddZeroMcp, MapZeroMcp, WithMcpTool
+│   ├── Options/                   ← ZeroMcpOptions
+│   └── MCPSwagger.csproj         (PackageId: ZeroMcp, Version: 1.0.2)
 ├── MCPSwagger.Sample/             ← Sample (Orders API, health minimal endpoint, optional auth)
 ├── nupkgs/                        ← dotnet pack -o nupkgs
 ├── progress.md
