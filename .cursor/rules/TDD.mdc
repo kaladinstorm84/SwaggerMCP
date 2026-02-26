@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-Work in TDD - Write a FAILING Test BEFORE implementing a feature, and then work to get that test working by implementing that feature
