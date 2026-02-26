@@ -44,15 +44,15 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore MCPSwagger/MCPSwagger.csproj
+        run: dotnet restore MCPSwagger/ZeroMCP.csproj
 
       - name: Build
-        run: dotnet build MCPSwagger/MCPSwagger.csproj -c Release --no-restore
+        run: dotnet build MCPSwagger/ZeroMCP.csproj -c Release --no-restore
 
       - name: Pack
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
-          dotnet pack MCPSwagger/MCPSwagger.csproj -c Release -o ./nupkgs --no-build -p:Version=$VERSION
+          dotnet pack MCPSwagger/ZeroMCP.csproj -c Release -o ./nupkgs --no-build -p:Version=$VERSION
 
       - name: Push to NuGet.org
         run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET }} --source https://api.nuget.org/v3/index.json --skip-duplicate
