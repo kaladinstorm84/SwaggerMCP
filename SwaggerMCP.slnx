@@ -3,7 +3,7 @@
     <File Path="README.md" />
     <File Path="VERSIONING.md" />
   </Folder>
-  <Project Path="MCPSwagger.Sample/ZeroMCP.Sample.csproj" />
-  <Project Path="MCPSwagger.Tests/ZeroMCP.Tests.csproj" />
-  <Project Path="MCPSwagger/ZeroMCP.csproj" />
+  <Project Path="ZeroMCP.Sample/ZeroMCP.Sample.csproj" />
+  <Project Path="ZeroMCP.Tests/ZeroMCP.Tests.csproj" />
+  <Project Path="ZeroMCP/ZeroMCP.csproj" />
 </Solution>
