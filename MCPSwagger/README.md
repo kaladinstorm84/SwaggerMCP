@@ -1,6 +1,6 @@
 # ZeroMCP
 
-Expose your ASP.NET Core API as an **MCP (Model Context Protocol)** server. Tag controller actions with `[McpTool]` or minimal APIs with `.WithMcpTool(...)`; ZeroMCP discovers them, builds JSON Schema for inputs, and exposes a single **POST /mcp** endpoint that speaks the MCP Streamable HTTP transport. Tool calls are dispatched in-process through your real pipeline (filters, validation, authorization run as normal).
+Expose your ASP.NET Core API as an **MCP (Model Context Protocol)** server. Tag controller actions with `[Mcp]` or minimal APIs with `.AsMcp(...)`; ZeroMCP discovers them, builds JSON Schema for inputs, and exposes a single **POST /mcp** endpoint that speaks the MCP Streamable HTTP transport. Tool calls are dispatched in-process through your real pipeline (filters, validation, authorization run as normal).
 
 **Full documentation** (configuration, governance, observability, minimal APIs, limitations): [repository README](https://github.com/kaladinstorm84/ZeroMCP) or your GitLab repo root `README.md`.
 
@@ -34,11 +34,11 @@ app.MapZeroMCP();  // GET and POST /mcp
 
 ```csharp
 [HttpGet("{id}")]
-[McpTool("get_order", Description = "Retrieves a single order by ID.")]
+[Mcp("get_order", Description = "Retrieves a single order by ID.")]
 public ActionResult<Order> GetOrder(int id) { ... }
 
 [HttpPost]
-[McpTool("create_order", Description = "Creates a new order.")]
+[Mcp("create_order", Description = "Creates a new order.")]
 public ActionResult<Order> CreateOrder([FromBody] CreateOrderRequest request) { ... }
 ```
 
@@ -46,7 +46,7 @@ public ActionResult<Order> CreateOrder([FromBody] CreateOrderRequest request) { 
 
 ```csharp
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }))
-   .WithMcpTool("health_check", "Returns API health status.");
+   .AsMcp("health_check", "Returns API health status.");
 ```
 
 If you use **both** controllers and minimal APIs, add `builder.Services.AddEndpointsApiExplorer();` and `app.MapControllers();` so controller tools are discovered.

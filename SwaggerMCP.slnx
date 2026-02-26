@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Readmes/">
     <File Path="README.md" />
+    <File Path="VERSIONING.md" />
   </Folder>
   <Project Path="MCPSwagger.Sample/ZeroMCP.Sample.csproj" />
   <Project Path="MCPSwagger.Tests/ZeroMCP.Tests.csproj" />
