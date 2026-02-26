@@ -59,7 +59,7 @@ jobs:
 
       - name: Add GitLab NuGet source
         run: |
-          dotnet nuget add source "${{ secrets.GITLAB_NUGET_SOURCE }}" --name gitlab \
+          dotnet nuget add source "https://nuget.pkg.github.com/kaladinstorm84/index.json" --name gitlab \
             --username "${{ secrets.GITLAB_NUGET_USER }}" \
             --password "${{ secrets.GITLAB_NUGET_TOKEN }}" \
             --store-password-in-clear-text
