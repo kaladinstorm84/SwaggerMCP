@@ -59,10 +59,10 @@ jobs:
 
       - name: Add GitLab NuGet source
         run: |
-          dotnet nuget add source "https://nuget.pkg.github.com/kaladinstorm84/index.json" --name gitlab \
-            --username "${{ secrets.GITLAB_NUGET_USER }}" \
-            --password "${{ secrets.GITLAB_NUGET_TOKEN }}" \
+          dotnet nuget add source "https://nuget.pkg.github.com/kaladinstorm84/index.json" --name github \
+            --username "kaladinstorm84" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
             --store-password-in-clear-text
 
       - name: Push to GitLab Package Registry
-        run: dotnet nuget push ./nupkgs/*.nupkg --source gitlab --skip-duplicate
+        run: dotnet nuget push ./nupkgs/*.nupkg --source github --skip-duplicate
