@@ -1,4 +1,4 @@
-# SwaggerMcp
+# ZeroMcp
 
 **This is the repository (GitLab/project) README** — full documentation, build, contributing, and project structure. The **NuGet package** ships with a shorter, consumer-focused README in `MCPSwagger/README.md`.
 

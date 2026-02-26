@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Readmes/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="MCPSwagger.Sample/ZeroMCP.Sample.csproj" />
   <Project Path="MCPSwagger.Tests/ZeroMCP.Tests.csproj" />
   <Project Path="MCPSwagger/ZeroMCP.csproj" />
