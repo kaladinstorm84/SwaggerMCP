@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SwaggerMcp.Discovery;
-using SwaggerMcp.Dispatch;
-using SwaggerMcp.Observability;
-using SwaggerMcp.Options;
+using ZeroMCP.Discovery;
+using ZeroMCP.Dispatch;
+using ZeroMCP.Observability;
+using ZeroMCP.Options;
 
-namespace SwaggerMcp.Transport;
+namespace ZeroMCP.Transport;
 
 /// <summary>
 /// Handles MCP tool listing and invocation by bridging the MCP SDK
@@ -19,14 +19,14 @@ internal sealed class McpSwaggerToolHandler
 {
     private readonly McpToolDiscoveryService _discovery;
     private readonly McpToolDispatcher _dispatcher;
-    private readonly SwaggerMcpOptions _options;
+    private readonly ZeroMCPOptions _options;
     private readonly IMcpMetricsSink _metricsSink;
     private readonly ILogger<McpSwaggerToolHandler> _logger;
 
     public McpSwaggerToolHandler(
         McpToolDiscoveryService discovery,
         McpToolDispatcher dispatcher,
-        IOptions<SwaggerMcpOptions> options,
+        IOptions<ZeroMCPOptions> options,
         IMcpMetricsSink metricsSink,
         ILogger<McpSwaggerToolHandler> logger)
     {

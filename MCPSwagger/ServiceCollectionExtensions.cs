@@ -1,45 +1,45 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using SwaggerMcp.Dispatch;
-using SwaggerMcp.Discovery;
-using SwaggerMcp.Observability;
-using SwaggerMcp.Options;
-using SwaggerMcp.Schema;
-using SwaggerMcp.Transport;
+using ZeroMCP.Dispatch;
+using ZeroMCP.Discovery;
+using ZeroMCP.Observability;
+using ZeroMCP.Options;
+using ZeroMCP.Schema;
+using ZeroMCP.Transport;
 
-namespace SwaggerMcp.Extensions;
+namespace ZeroMCP.Extensions;
 
 /// <summary>
-/// Extension methods for registering SwaggerMcp services with the DI container.
+/// Extension methods for registering ZeroMCP services with the DI container.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds SwaggerMcp services. Call this before <c>builder.Build()</c>.
+    /// Adds ZeroMCP services. Call this before <c>builder.Build()</c>.
     /// </summary>
     /// <example>
     /// <code>
-    /// builder.Services.AddSwaggerMcp(options =>
+    /// builder.Services.AddZeroMCP(options =>
     /// {
     ///     options.ServerName = "My API";
     ///     options.RoutePrefix = "/mcp";
     /// });
     /// </code>
     /// </example>
-    public static IServiceCollection AddSwaggerMcp(
+    public static IServiceCollection AddZeroMCP(
         this IServiceCollection services,
-        Action<SwaggerMcpOptions>? configure = null)
+        Action<ZeroMCPOptions>? configure = null)
     {
         // Register options
-        var optionsBuilder = services.AddOptions<SwaggerMcpOptions>();
+        var optionsBuilder = services.AddOptions<ZeroMCPOptions>();
         if (configure is not null)
             optionsBuilder.Configure(configure);
 
         // Resolve server name from entry assembly if not set
-        services.PostConfigure<SwaggerMcpOptions>(options =>
+        services.PostConfigure<ZeroMCPOptions>(options =>
         {
-            options.ServerName ??= Assembly.GetEntryAssembly()?.GetName().Name ?? "SwaggerMcp Server";
+            options.ServerName ??= Assembly.GetEntryAssembly()?.GetName().Name ?? "ZeroMCP Server";
         });
 
         // Core infrastructure — all singletons since they cache at startup
@@ -50,7 +50,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SyntheticHttpContextFactory>();
         services.AddSingleton<McpToolDispatcher>();
 
-        // Observability: metrics sink (register your own after AddSwaggerMcp to replace the no-op)
+        // Observability: metrics sink (register your own after AddZeroMCP to replace the no-op)
         services.AddSingleton<IMcpMetricsSink, NoOpMcpMetricsSink>();
 
         // Transport

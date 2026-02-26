@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using FluentAssertions;
-using SwaggerMcp.Discovery;
-using SwaggerMcp.Schema;
+using ZeroMCP.Discovery;
+using ZeroMCP.Schema;
 using Xunit;
 
-namespace SwaggerMcp.Tests;
+namespace ZeroMCP.Tests;
 
 public sealed class McpSchemaBuilderTests
 {

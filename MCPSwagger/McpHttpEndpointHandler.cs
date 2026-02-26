@@ -4,11 +4,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using SwaggerMcp;
-using SwaggerMcp.Options;
-using SwaggerMcp.Transport;
+using ZeroMCP;
+using ZeroMCP.Options;
+using ZeroMCP.Transport;
 
-namespace SwaggerMcp.Transport;
+namespace ZeroMCP.Transport;
 
 /// <summary>
 /// Handles the streamable HTTP MCP transport protocol.
@@ -26,14 +26,14 @@ internal sealed class McpHttpEndpointHandler
     private readonly McpSwaggerToolHandler _toolHandler;
     private readonly string _serverName;
     private readonly string _serverVersion;
-    private readonly SwaggerMcpOptions _options;
+    private readonly ZeroMCPOptions _options;
     private readonly ILogger<McpHttpEndpointHandler> _logger;
 
     public McpHttpEndpointHandler(
         McpSwaggerToolHandler toolHandler,
         string serverName,
         string serverVersion,
-        SwaggerMcpOptions options,
+        ZeroMCPOptions options,
         ILogger<McpHttpEndpointHandler> logger)
     {
         _toolHandler = toolHandler;

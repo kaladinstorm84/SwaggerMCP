@@ -1,18 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFrameworks>net10.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>SwaggerMcp</RootNamespace>
+    <RootNamespace>ZeroMcp</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <!-- NuGet package -->
-    <PackageId>SwaggerMcp</PackageId>
-    <Version>1.0.2</Version>
-    <Authors>SwaggerMcp</Authors>
+    <PackageId>ZeroMcp</PackageId>
+    <Version>1.1.2</Version>
+    <Authors>KaladinStorm84</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Description>Expose ASP.NET Core API actions as an MCP (Model Context Protocol) server. Tag actions with [McpTool], add AddSwaggerMcp() and MapSwaggerMcp() for a POST /mcp endpoint.</Description>
+    <Description>MCP (Model Context Protocol) server from existing API with Zero duplication, Zero friction</Description>
     <PackageTags>mcp;model-context-protocol;aspnetcore;openapi;swagger;llm;claude</PackageTags>
     <PackageProjectUrl>https://github.com/kaladinstorm84/SwaggerMCP</PackageProjectUrl>
     <RepositoryUrl>https://github.com/kaladinstorm84/SwaggerMCP</RepositoryUrl>

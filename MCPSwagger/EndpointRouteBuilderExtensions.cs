@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SwaggerMcp.Options;
-using SwaggerMcp.Transport;
+using ZeroMCP.Options;
+using ZeroMCP.Transport;
 
-namespace SwaggerMcp.Extensions;
+namespace ZeroMCP.Extensions;
 
 /// <summary>
 /// Extension methods for mapping the MCP endpoint in the ASP.NET Core routing pipeline.
@@ -20,16 +20,16 @@ public static class EndpointRouteBuilderExtensions
     /// </summary>
     /// <example>
     /// <code>
-    /// app.MapSwaggerMcp();
+    /// app.MapZeroMCP();
     /// // or with a custom route:
-    /// app.MapSwaggerMcp("/api/mcp");
+    /// app.MapZeroMCP("/api/mcp");
     /// </code>
     /// </example>
-    public static IEndpointConventionBuilder MapSwaggerMcp(
+    public static IEndpointConventionBuilder MapZeroMCP(
         this IEndpointRouteBuilder endpoints,
         string? routePrefix = null)
     {
-        var options = endpoints.ServiceProvider.GetRequiredService<IOptions<SwaggerMcpOptions>>().Value;
+        var options = endpoints.ServiceProvider.GetRequiredService<IOptions<ZeroMCPOptions>>().Value;
         var route = routePrefix ?? options.RoutePrefix;
 
         // Normalize — ensure single leading slash, no trailing slash
@@ -37,9 +37,9 @@ public static class EndpointRouteBuilderExtensions
 
         var logger = endpoints.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("SwaggerMcp");
+            .CreateLogger("ZeroMCP");
 
-        logger.LogInformation("SwaggerMcp MCP endpoint registered at POST {Route}", route);
+        logger.LogInformation("ZeroMCP MCP endpoint registered at POST {Route}", route);
 
         // Pre-build the handler once — it's expensive to construct per-request
         var toolHandler = endpoints.ServiceProvider.GetRequiredService<McpSwaggerToolHandler>();
@@ -56,7 +56,7 @@ public static class EndpointRouteBuilderExtensions
         // The MCP streamable HTTP transport: GET returns endpoint info, POST handles JSON-RPC
         return endpoints.MapMethods(route, ["GET", "POST"], (HttpContext ctx) => mcpHandler.HandleAsync(ctx))
             .WithName("mcp-endpoint")
-            .WithDisplayName("MCP Endpoint (SwaggerMcp)")
+            .WithDisplayName("MCP Endpoint (ZeroMCP)")
             .WithMetadata(new HttpMethodMetadata(["GET", "POST"]));
     }
 }

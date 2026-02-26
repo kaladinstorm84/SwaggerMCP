@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Routing;
 
-namespace SwaggerMcp.Metadata;
+namespace ZeroMCP.Metadata;
 
 /// <summary>
 /// Metadata attached to minimal API endpoints to expose them as MCP tools.

@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Xml;
 
-namespace SwaggerMcp.Discovery;
+namespace ZeroMCP.Discovery;
 
 /// <summary>
 /// Reads XML documentation comments for method summary (fallback when [McpTool] Description is not set).

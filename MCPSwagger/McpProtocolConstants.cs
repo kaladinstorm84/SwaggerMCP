@@ -1,4 +1,4 @@
-namespace SwaggerMcp;
+namespace ZeroMCP;
 
 /// <summary>
 /// Locked MCP (Model Context Protocol) transport constants.

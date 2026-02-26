@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SwaggerMcp.Attributes;
+using ZeroMCP.Attributes;
 
 namespace SampleApi.Controllers;
 
@@ -16,7 +16,7 @@ public class OrdersController : ControllerBase
     ];
 
     [HttpGet("{id:int}")]
-    [McpTool("get_order", Description = "Retrieves a single order by its numeric ID.")]
+    [Mcp("get_order", Description = "Retrieves a single order by its numeric ID.")]
     public ActionResult<Order> GetOrder(int id)
     {
         var order = _store.FirstOrDefault(o => o.Id == id);
@@ -25,7 +25,7 @@ public class OrdersController : ControllerBase
 
     [HttpGet("secure/{id:int}")]
     [Authorize]
-    [McpTool("get_secure_order", Description = "Retrieves a single order by its numeric ID. Requires authentication.")]
+    [Mcp("get_secure_order", Description = "Retrieves a single order by its numeric ID. Requires authentication.")]
     public ActionResult<Order> GetSecureOrder(int id)
     {
         var order = _store.FirstOrDefault(o => o.Id == id);
@@ -33,7 +33,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet]
-    [McpTool("list_orders", Description = "Lists all orders. Optionally filter by status (pending, shipped, cancelled).")]
+    [Mcp("list_orders", Description = "Lists all orders. Optionally filter by status (pending, shipped, cancelled).")]
     public ActionResult<List<Order>> ListOrders([FromQuery] string? status = null)
     {
         var orders = status is null
@@ -43,7 +43,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    [McpTool("create_order", Description = "Creates a new order. Returns the created order with its assigned ID.", Tags = ["write"])]
+    [Mcp("create_order", Description = "Creates a new order. Returns the created order with its assigned ID.", Tags = ["write"])]
     public ActionResult<Order> CreateOrder([FromBody] CreateOrderRequest request)
     {
         var order = new Order
@@ -59,7 +59,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
-    [McpTool("update_order_status", Description = "Updates the status of an existing order.")]
+    [Mcp("update_order_status", Description = "Updates the status of an existing order.")]
     public ActionResult<Order> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
     {
         var order = _store.FirstOrDefault(o => o.Id == id);

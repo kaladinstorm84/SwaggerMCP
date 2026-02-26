@@ -1,4 +1,4 @@
-namespace SwaggerMcp.Observability;
+namespace ZeroMCP.Observability;
 
 /// <summary>
 /// Optional sink for MCP tool invocation metrics (timing, success/failure).

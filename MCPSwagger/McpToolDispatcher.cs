@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using SwaggerMcp.Discovery;
+using ZeroMCP.Discovery;
 
-namespace SwaggerMcp.Dispatch;
+namespace ZeroMCP.Dispatch;
 
 /// <summary>
 /// The result of an in-process MCP tool dispatch.

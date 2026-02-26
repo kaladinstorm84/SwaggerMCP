@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
-using SwaggerMcp.Discovery;
-using SwaggerMcp.Options;
+using ZeroMCP.Discovery;
+using ZeroMCP.Options;
 
-namespace SwaggerMcp.Dispatch;
+namespace ZeroMCP.Dispatch;
 
 /// <summary>
 /// Constructs synthetic HttpContext instances for in-process action dispatch.
@@ -18,12 +18,12 @@ public sealed class SyntheticHttpContextFactory
 {
     private readonly IHttpContextFactory _httpContextFactory;
     private readonly IServiceProvider _serviceProvider;
-    private readonly SwaggerMcpOptions _options;
+    private readonly ZeroMCPOptions _options;
 
     public SyntheticHttpContextFactory(
         IHttpContextFactory httpContextFactory,
         IServiceProvider serviceProvider,
-        IOptions<SwaggerMcpOptions> options)
+        IOptions<ZeroMCPOptions> options)
     {
         _httpContextFactory = httpContextFactory;
         _serviceProvider = serviceProvider;

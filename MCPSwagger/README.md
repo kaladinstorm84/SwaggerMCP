@@ -1,15 +1,15 @@
-# SwaggerMcp
+# ZeroMCP
 
-Expose your ASP.NET Core API as an **MCP (Model Context Protocol)** server. Tag controller actions with `[McpTool]` or minimal APIs with `.WithMcpTool(...)`; SwaggerMcp discovers them, builds JSON Schema for inputs, and exposes a single **POST /mcp** endpoint that speaks the MCP Streamable HTTP transport. Tool calls are dispatched in-process through your real pipeline (filters, validation, authorization run as normal).
+Expose your ASP.NET Core API as an **MCP (Model Context Protocol)** server. Tag controller actions with `[McpTool]` or minimal APIs with `.WithMcpTool(...)`; ZeroMCP discovers them, builds JSON Schema for inputs, and exposes a single **POST /mcp** endpoint that speaks the MCP Streamable HTTP transport. Tool calls are dispatched in-process through your real pipeline (filters, validation, authorization run as normal).
 
-**Full documentation** (configuration, governance, observability, minimal APIs, limitations): [repository README](https://github.com/kaladinstorm84/SwaggerMCP) or your GitLab repo root `README.md`.
+**Full documentation** (configuration, governance, observability, minimal APIs, limitations): [repository README](https://github.com/kaladinstorm84/ZeroMCP) or your GitLab repo root `README.md`.
 
 ---
 
 ## Install
 
 ```xml
-<PackageReference Include="SwaggerMcp" Version="1.0.2" />
+<PackageReference Include="ZeroMCP" Version="1.*" />
 ```
 
 ---
@@ -20,14 +20,14 @@ Expose your ASP.NET Core API as an **MCP (Model Context Protocol)** server. Tag 
 
 ```csharp
 // Program.cs
-builder.Services.AddSwaggerMcp(options =>
+builder.Services.AddZeroMCP(options =>
 {
     options.ServerName = "My API";
     options.ServerVersion = "1.0.0";
 });
 
 // After UseRouting(), UseAuthorization()
-app.MapSwaggerMcp();  // GET and POST /mcp
+app.MapZeroMCP();  // GET and POST /mcp
 ```
 
 **2. Tag controller actions**
@@ -69,7 +69,7 @@ Point any MCP client (e.g. Claude Desktop) at your app’s `/mcp` URL.
 
 **Governance:** Use `[McpTool(..., Roles = new[] { "Admin" }, Policy = "RequireEditor")]` or `.WithMcpTool(..., roles: ..., policy: ...)` to restrict which tools appear in `tools/list` per user.
 
-**Metrics:** Implement `IMcpMetricsSink` and register it after `AddSwaggerMcp()` to record tool invocations (name, status code, duration, success/failure).
+**Metrics:** Implement `IMcpMetricsSink` and register it after `AddZeroMCP()` to record tool invocations (name, status code, duration, success/failure).
 
 ---
 

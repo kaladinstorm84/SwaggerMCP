@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="MCPSwagger/MCPSwagger.csproj" />
-  <Project Path="MCPSwagger.Sample/MCPSwagger.Sample.csproj" />
-  <Project Path="MCPSwagger.Tests/MCPSwagger.Tests.csproj" />
+  <Project Path="MCPSwagger.Sample/ZeroMCP.Sample.csproj" />
+  <Project Path="MCPSwagger.Tests/ZeroMCP.Tests.csproj" />
+  <Project Path="MCPSwagger/ZeroMCP.csproj" />
 </Solution>

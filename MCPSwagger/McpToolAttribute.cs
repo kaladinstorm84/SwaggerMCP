@@ -1,11 +1,11 @@
-namespace SwaggerMcp.Attributes;
+namespace ZeroMCP.Attributes;
 
 /// <summary>
 /// Marks an ASP.NET Core controller action as an MCP tool.
 /// Only actions with this attribute will be exposed via the MCP endpoint.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class McpToolAttribute : Attribute
+public sealed class McpAttribute : Attribute
 {
     /// <summary>
     /// The tool name exposed to the MCP client. Use snake_case by convention.
@@ -36,7 +36,7 @@ public sealed class McpToolAttribute : Attribute
     public string? Policy { get; set; }
 
     /// <param name="name">The tool name in snake_case (e.g. "get_order", "create_customer")</param>
-    public McpToolAttribute(string name)
+    public McpAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;

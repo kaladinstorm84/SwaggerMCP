@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SwaggerMcp.Attributes;
-using SwaggerMcp.Metadata;
-using SwaggerMcp.Options;
-using SwaggerMcp.Schema;
+using ZeroMCP.Attributes;
+using ZeroMCP.Metadata;
+using ZeroMCP.Options;
+using ZeroMCP.Schema;
 
-namespace SwaggerMcp.Discovery;
+namespace ZeroMCP.Discovery;
 
 /// <summary>
 /// Discovers all [McpTool]-tagged controller actions at startup and builds the tool registry.
@@ -19,7 +19,7 @@ public sealed class McpToolDiscoveryService
     private readonly IApiDescriptionGroupCollectionProvider _apiDescriptionProvider;
     private readonly EndpointDataSource _endpointDataSource;
     private readonly McpSchemaBuilder _schemaBuilder;
-    private readonly SwaggerMcpOptions _options;
+    private readonly ZeroMCPOptions _options;
     private readonly ILogger<McpToolDiscoveryService> _logger;
 
     // Lazy-initialized registry
@@ -30,7 +30,7 @@ public sealed class McpToolDiscoveryService
         IApiDescriptionGroupCollectionProvider apiDescriptionProvider,
         EndpointDataSource endpointDataSource,
         McpSchemaBuilder schemaBuilder,
-        IOptions<SwaggerMcpOptions> options,
+        IOptions<ZeroMCPOptions> options,
         ILogger<McpToolDiscoveryService> logger)
     {
         _apiDescriptionProvider = apiDescriptionProvider;
@@ -82,8 +82,8 @@ public sealed class McpToolDiscoveryService
 
             // Must have [McpTool]
             var mcpAttr = controllerDescriptor.MethodInfo
-                .GetCustomAttributes(typeof(McpToolAttribute), inherit: false)
-                .FirstOrDefault() as McpToolAttribute;
+                .GetCustomAttributes(typeof(McpAttribute), inherit: false)
+                .FirstOrDefault() as McpAttribute;
 
             if (mcpAttr is null)
                 continue;
@@ -148,7 +148,7 @@ public sealed class McpToolDiscoveryService
                 minDescriptor.RelativeUrl);
         }
 
-        _logger.LogInformation("SwaggerMcp: discovered {Count} MCP tool(s)", registry.Count);
+        _logger.LogInformation("ZeroMCP: discovered {Count} MCP tool(s)", registry.Count);
         return registry;
     }
 
@@ -204,7 +204,7 @@ public sealed class McpToolDiscoveryService
     private McpToolDescriptor BuildDescriptor(
         ApiDescription apiDescription,
         ControllerActionDescriptor controllerDescriptor,
-        McpToolAttribute mcpAttr)
+        McpAttribute mcpAttr)
     {
         var routeParams = new List<McpParameterDescriptor>();
         var queryParams = new List<McpParameterDescriptor>();

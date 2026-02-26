@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Http;
 
-namespace SwaggerMcp.Options;
+namespace ZeroMCP.Options;
 
 /// <summary>
-/// Configuration options for the SwaggerMcp middleware.
+/// Configuration options for the ZeroMCP middleware.
 /// </summary>
-public sealed class SwaggerMcpOptions
+public sealed class ZeroMCPOptions
 {
     /// <summary>
     /// The route prefix for the MCP endpoint. Default is "/mcp".

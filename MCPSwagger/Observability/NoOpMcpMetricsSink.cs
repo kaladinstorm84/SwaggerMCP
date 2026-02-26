@@ -1,4 +1,4 @@
-namespace SwaggerMcp.Observability;
+namespace ZeroMCP.Observability;
 
 /// <summary>
 /// No-op implementation of <see cref="IMcpMetricsSink"/>. Used when no custom sink is registered.

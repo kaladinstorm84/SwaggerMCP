@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
-using SwaggerMcp.Attributes;
+using ZeroMCP.Attributes;
 
-namespace SwaggerMcp.Discovery;
+namespace ZeroMCP.Discovery;
 
 /// <summary>
 /// Holds all the metadata needed to describe and invoke a single MCP tool.
-/// Built at startup from the ApiDescription and McpToolAttribute, immutable at runtime.
+/// Built at startup from the ApiDescription and McpAttribute, immutable at runtime.
 /// </summary>
 public sealed class McpToolDescriptor
 {
@@ -17,7 +17,7 @@ public sealed class McpToolDescriptor
     /// <summary>The tool description shown to the LLM.</summary>
     public string? Description { get; init; }
 
-    /// <summary>Optional tags from McpToolAttribute.</summary>
+    /// <summary>Optional tags from McpAttribute.</summary>
     public string[]? Tags { get; init; }
 
     /// <summary>When set, tool is only visible in tools/list if the user is in at least one of these roles.</summary>

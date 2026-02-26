@@ -3,10 +3,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using SwaggerMcp;
+using ZeroMCP;
 using Xunit;
 
-namespace SwaggerMcp.Tests;
+namespace ZeroMCP.Tests;
 
 public sealed class McpEndpointIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
