@@ -18,7 +18,7 @@ public static class McpToolEndpointExtensions
     /// <param name="tags">Optional tags for grouping.</param>
     /// <param name="roles">Optional role names; tool is only listed if the user is in at least one role.</param>
     /// <param name="policy">Optional authorization policy name; tool is only listed if the user satisfies the policy.</param>
-    public static TBuilder WithMcpTool<TBuilder>(
+    public static TBuilder AsMcp<TBuilder>(
         this TBuilder builder,
         string name,
         string? description = null,

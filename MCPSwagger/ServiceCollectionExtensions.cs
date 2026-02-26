@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
     /// });
     /// </code>
     /// </example>
-    public static IServiceCollection AddZeroMCP(
+    public static IServiceCollection AddZeroMcp(
         this IServiceCollection services,
         Action<ZeroMCPOptions>? configure = null)
     {

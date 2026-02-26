@@ -25,7 +25,7 @@ public static class EndpointRouteBuilderExtensions
     /// app.MapZeroMCP("/api/mcp");
     /// </code>
     /// </example>
-    public static IEndpointConventionBuilder MapZeroMCP(
+    public static IEndpointConventionBuilder MapZeroMcp(
         this IEndpointRouteBuilder endpoints,
         string? routePrefix = null)
     {

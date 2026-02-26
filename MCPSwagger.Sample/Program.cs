@@ -13,7 +13,7 @@ builder.Services
         ApiKeyAuthenticationHandler.SchemeName,
         _ => { });
 builder.Services.AddAuthorization();
-builder.Services.AddZeroMCP(options =>
+builder.Services.AddZeroMcp(options =>
 {
     options.ServerName = "Orders API";
     options.ServerVersion = "1.0.0";
@@ -31,13 +31,13 @@ app.MapControllers();
 
 // Minimal API example: exposed as MCP tool via WithMcpTool
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }))
-   .WithMcpTool("health_check", "Returns API health status.", tags: new[] { "system" });
+   .AsMcp("health_check", "Returns API health status.", tags: new[] { "system" });
 
 // Governance: role-based tool — only visible in tools/list when user is in Admin role
 app.MapGet("/api/admin/health", () => Results.Ok(new { status = "admin-ok", timestamp = DateTime.UtcNow }))
-   .WithMcpTool("admin_health", "Admin-only health. Visible only to callers with Admin role.", tags: new[] { "system", "admin" }, roles: new[] { "Admin" });
+   .AsMcp("admin_health", "Admin-only health. Visible only to callers with Admin role.", tags: new[] { "system", "admin" }, roles: new[] { "Admin" });
 
-app.MapZeroMCP();
+app.MapZeroMcp();
 
 app.Run();
 

@@ -6,7 +6,7 @@ Expose your existing ASP.NET Core API as an MCP (Model Context Protocol) server 
 
 ## How It Works
 
-Tag controller actions with `[McpTool]` or minimal APIs with `.WithMcpTool(...)`. SwaggerMcp will:
+Tag controller actions with `[Mcp]` or minimal APIs with `.WithMcpTool(...)`. SwaggerMcp will:
 
 1. **Discover** tools at startup from controller API descriptions (same source as Swagger) and from minimal API endpoints that use `WithMcpTool`
 2. **Generate** a JSON Schema for each tool's inputs (route, query, and body merged)
@@ -22,7 +22,7 @@ SwaggerMcp Endpoint
     │
     │  in-process dispatch (controller or minimal endpoint)
     ▼
-Your Action / Endpoint  ← [McpTool] or .WithMcpTool(...)
+Your Action / Endpoint  ← [Mcp] or .AsMCP(...)
     │
     │  real response
     ▼
