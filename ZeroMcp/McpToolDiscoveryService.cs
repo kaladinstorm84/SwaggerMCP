@@ -24,7 +24,11 @@ public sealed class McpToolDiscoveryService
 
     // Lazy-initialized registry
     private IReadOnlyDictionary<string, McpToolDescriptor>? _registry;
+#if NET9_0_OR_GREATER
     private readonly Lock _lock = new();
+#else
+    private readonly object _lock = new();
+#endif
 
     public McpToolDiscoveryService(
         IApiDescriptionGroupCollectionProvider apiDescriptionProvider,
