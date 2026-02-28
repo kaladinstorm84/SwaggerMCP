@@ -1,6 +1,7 @@
 # ZeroMcp
 
-** Migrated to (zeroMcp)[https://github.com/ZeroMcp/ZeroMCP.net]
+** Migrated to [zeroMcp](https://github.com/ZeroMcp/ZeroMCP.net) **
+
 **This is the repository (GitLab/project) README** — full documentation, build, contributing, and project structure. The **NuGet package** ships with a shorter, consumer-focused README in `ZeroMCP/README.md`.
 
 Expose your existing ASP.NET Core API as an MCP (Model Context Protocol) server with a single attribute and two lines of setup. No separate process. No code duplication.
