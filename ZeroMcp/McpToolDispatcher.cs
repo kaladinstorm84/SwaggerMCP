@@ -83,13 +83,6 @@ public sealed class McpToolDispatcher
             return DispatchResult.Failure(400, $"Failed to bind arguments: {ex.Message}");
         }
 
-        // Simple auth check: if the tool requires authorization and the synthetic user is unauthenticated, fail with 401.
-        if (RequiresAuthentication(descriptor) && !IsAuthenticated(context))
-        {
-            _logger.LogDebug("Tool '{ToolName}' requires authentication and no authenticated user is present.", descriptor.Name);
-            return DispatchResult.Failure(401, "Unauthorized");
-        }
-
         // Set endpoint when available so pipeline (e.g. CreatedAtAction, LinkGenerator) sees a matched endpoint
         if (descriptor.Endpoint is not null)
             context.SetEndpoint(descriptor.Endpoint);
